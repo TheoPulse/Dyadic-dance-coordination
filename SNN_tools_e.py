@@ -1,7 +1,19 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+from spikingjelly.activation_based import functional, surrogate
+
+from torchvision import datasets, transforms
+import itertools
+import snntorch.functional as SF
+from torch.utils.data import Dataset, DataLoader, random_split
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
+from snntorch import surrogate
 from spikingjelly.activation_based import layer, neuron
 from spikingjelly.activation_based import surrogate
+import pandas as pd
+
 safe_surrogate = surrogate.Sigmoid(alpha=4.0)
 torch.set_default_dtype(torch.float32)
 
@@ -149,8 +161,8 @@ class RecurrentSNN(SNN_func):
 
 
 
-def train_snn(model, train_loader, test_loader, optimizer, device, epochs=10, loss_type='spike_count'):
-    torch.manual_seed(0)
+def train_snn(model, train_loader, test_loader, optimizer, early_stopper, device, epochs=10, loss_type='spike_count', seed_train=0):
+    torch.manual_seed(seed_train)
 
     # Outer training loop
     metrics_train = []
@@ -288,3 +300,36 @@ def inference_snn(test_loader, model, loss_type):
     val_acc = total_val_acc / total_val_samples
 
     return val_acc, avg_val_loss
+
+
+
+class EarlyStoppingPers:
+    def __init__(self, patience=10, min_delta=0.0, verbose=False, save_path=None):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.best_loss = float('inf')
+        self.early_stop = False
+        self.verbose = verbose
+        self.save_path = save_path
+
+    def __call__(self, val_loss, model):
+        if val_loss < self.best_loss - self.min_delta:
+            self.best_loss = val_loss
+            self.counter = 0
+            if self.save_path:
+                torch.save(model.state_dict(), self.save_path)
+            if self.verbose:
+                print(f"Validation loss improved to {val_loss:.4f}, saving model.")
+        else:
+            self.counter += 1
+            if self.verbose:
+                print(f"No improvement for {self.counter} epochs.")
+
+        if self.counter >= self.patience:
+            if self.verbose:
+                print(f"Early stopping triggered after {self.counter} epochs.")
+            self.early_stop = True
+
+def custom_callback(epoch, train_loss, val_loss, accuracy):
+    print(f"[Callback] Epoch {epoch}: Train Loss={train_loss:.4f}, Val Loss={val_loss:.4f}, Acc={accuracy:.4f}")
