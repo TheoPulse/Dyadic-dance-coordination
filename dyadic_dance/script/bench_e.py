@@ -6,11 +6,10 @@ from pathlib import Path
 import pickle
 
 try:
-    BASE_DIR = Path(__file__).resolve().parent.parent  # project root
+    BASE_DIR = Path(__file__).resolve().parent.parent
 except NameError:
     BASE_DIR = Path.cwd()
 
-# add project root to Python path so "functional" can be imported
 sys.path.append(str(BASE_DIR))
 
 
@@ -18,8 +17,10 @@ sys.path.append(str(BASE_DIR))
 DATA_DIR = BASE_DIR / "data" / "both_cond_only"
 
 # Results folder
-RESULTS_DIR = DATA_DIR / "results" / "raw_velocities" / "loo_splits"
-# Ensure results folder exists
+#RESULTS_DIR = DATA_DIR / "results" / "raw_velocities" / "loo_splits"
+RESULTS_DIR = DATA_DIR / "results" / "raw_velocities" / "strat_splits"
+#RESULTS_DIR = DATA_DIR / "results" / "features" / "loo_splits"
+#RESULTS_DIR = DATA_DIR / "results" / "features" / "strat_splits"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 from functional.tools import *
